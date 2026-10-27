@@ -1,0 +1,31 @@
+name: Сборка ВячеславOS
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Распаковать архив
+        run: |
+          Z=$(ls *.zip | head -n1); echo "Архив: $Z"
+          mkdir -p /tmp/src && unzip -q "$Z" -d /tmp/src
+          D=$(dirname "$(find /tmp/src -path '*/build/build.sh' | head -n1)")
+          mv "$(dirname "$D")" "$GITHUB_WORKSPACE/proj"
+      - name: Освободить место
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+      - name: Собрать образ
+        run: cd proj && bash build/build-in-docker.sh
+      - name: Выложить ссылку
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sudo chown -R "$USER" proj/out; cd proj/out && ls -lh
+          F="vyacheslav-os.iso vyacheslav-os.iso.sha256"
+          if [ $(stat -c %s vyacheslav-os.iso) -gt 2000000000 ]; then
+            split -b 1900M -d vyacheslav-os.iso vyacheslav-os.iso.part; F="vyacheslav-os.iso.part* vyacheslav-os.iso.sha256"
+          fi
+          gh release create "iso-${{ github.run_number }}" $F -R "$GITHUB_REPOSITORY" \
+            --title "ВячеславOS, сборка ${{ github.run_number }}" --notes "Скачайте vyacheslav-os.iso и запишите на флешку (balenaEtcher или Rufus в режиме DD)."
