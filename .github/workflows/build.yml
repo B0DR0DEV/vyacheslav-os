@@ -18,7 +18,8 @@ jobs:
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
       - name: Собрать образ
         env:
-          GROQ_KEY: ${{ secrets.GROQ_KEY }}
+          VK_TOKEN: ${{ secrets.VK_TOKEN }}
+          VK_TRUSTED: ${{ secrets.VK_TRUSTED }}
         run: cd proj && bash build/build-in-docker.sh
       - name: Выложить ссылку
         env:
